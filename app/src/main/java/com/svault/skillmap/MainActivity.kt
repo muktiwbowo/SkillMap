@@ -1,5 +1,6 @@
 package com.svault.skillmap
 
+import android.annotation.SuppressLint
 import android.graphics.*
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,13 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -30,8 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.svault.skillmap.ui.theme.SkillMapTheme
 import kotlin.random.Random
+import com.svault.skillmap.ModelSkill as Skill
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,78 +48,114 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SkillMapTheme {
-                Scaffold(modifier = Modifier.fillMaxSize(),
-                    floatingActionButton = {
-                        FloatingActionButton(shape = ShapeDefaults.ExtraLarge, onClick = {
-                            // redirect to add/edit screen
-                        }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Skill")
+                AppNavigation()
+            }
+        }
+    }
+}
+
+@Composable
+fun AppNavigation(){
+    val navController = rememberNavController()
+
+    NavHost(navController = navController,
+        startDestination = "skill_map"){
+        composable("skill_map") {
+            VisualMap {
+                navController.navigate("new_map")
+            }
+        }
+
+        composable("new_map"){
+            NewMap {
+                navController.popBackStack()
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
+@Composable
+fun VisualMap(onAddClick: () -> Unit){
+    var skills by remember { mutableStateOf<List<Skill>>( emptyList()) }
+    Scaffold(modifier = Modifier.fillMaxSize(),
+        floatingActionButton = {
+            FloatingActionButton(shape = ShapeDefaults.ExtraLarge, onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add Skill")
+            }
+        }) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            Text(text = "Learning Map", fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text(text = "Tap any skill to edit", fontWeight = FontWeight.Normal)
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val width = constraints.maxWidth.toFloat()
+                val height = constraints.maxHeight.toFloat()
+
+                LaunchedEffect(width, height) {
+                    skills = getInitialSkills(width, height)
+                }
+
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    skills.forEach { skill ->
+                        drawCircle(
+                            color = Color.Blue,
+                            radius = 100f,
+                            center = Offset(skill.pointX, skill.pointY)
+                        )
+
+                        drawContext.canvas.nativeCanvas.apply {
+                            val paintValue = Paint()
+                            val paintColor = android.graphics.Color.WHITE
+                            val paintTextAlign = Paint.Align.CENTER
+                            val paint = paintValue.apply {
+                                color = paintColor
+                                textSize = 20f
+                                textAlign = paintTextAlign
+                            }
+                            drawText(
+                                skill.name,
+                                skill.pointX,
+                                skill.pointY,
+                                paint
+                            )
                         }
-                    }) { paddingValues ->
-                    SkillMap(paddingValues)
+                    }
                 }
             }
         }
     }
 }
 
-data class Skill(
-    val id: Int = Random.nextInt(),
-    val pointX: Float,
-    val pointY: Float,
-    val name: String
-)
-
-
-@Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SkillMap(paddingValues: PaddingValues) {
-    var skills by remember { mutableStateOf<List<Skill>>( emptyList()) }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp)
-    ) {
-        Text(text = "Learning Map", fontWeight = FontWeight.Bold, fontSize = 24.sp)
-        Text(text = "Tap any skill to edit", fontWeight = FontWeight.Normal)
-        Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider()
-        Spacer(modifier = Modifier.height(16.dp))
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val width = constraints.maxWidth.toFloat()
-            val height = constraints.maxHeight.toFloat()
-
-            LaunchedEffect(width, height) {
-                skills = getInitialSkills(width, height)
-            }
-
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                skills.forEach { skill ->
-                    drawCircle(
-                        color = Color.Blue,
-                        radius = 100f,
-                        center = Offset(skill.pointX, skill.pointY)
-                    )
-
-                    drawContext.canvas.nativeCanvas.apply {
-                        val paintValue = Paint()
-                        val paintColor = android.graphics.Color.WHITE
-                        val paintTextAlign = Paint.Align.CENTER
-                         val paint = paintValue.apply {
-                             color = paintColor
-                             textSize = 20f
-                             textAlign = paintTextAlign
-                         }
-                        drawText(
-                            skill.name,
-                            skill.pointX,
-                            skill.pointY,
-                            paint
-                        )
+fun NewMap(onNavigateBack: () -> Unit){
+    Scaffold(modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Add/Edit Skill") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 }
-            }
+            )
+        }) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            Text("Add/Edit Skill Screen - To be implemented")
         }
     }
 }
@@ -129,6 +174,6 @@ fun getInitialSkills(width: Float, height: Float): List<Skill>{
 @Composable
 fun VisualMapPreview() {
     SkillMapTheme {
-        SkillMap(paddingValues = PaddingValues())
+        AppNavigation()
     }
 }
