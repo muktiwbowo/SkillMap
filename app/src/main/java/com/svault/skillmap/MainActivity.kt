@@ -1,9 +1,8 @@
 package com.svault.skillmap
 
 import android.annotation.SuppressLint
-import android.graphics.*
+import android.graphics.Paint
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,12 +34,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -50,14 +51,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.svault.skillmap.ui.theme.SkillMapTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import com.svault.skillmap.ModelSkill as Skill
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,15 +83,15 @@ fun AppNavigation() {
         startDestination = "skill_map"
     ) {
         composable("skill_map") {
-            VisualMap {
+            VisualMap(onAddClick = {
                 navController.navigate("new_map")
-            }
+            })
         }
 
         composable("new_map") {
-            NewMap {
+            NewMap(onNavigateBack = {
                 navController.popBackStack()
-            }
+            })
         }
     }
 }
@@ -95,8 +99,11 @@ fun AppNavigation() {
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @Composable
-fun VisualMap(onAddClick: () -> Unit) {
-    var skills by remember { mutableStateOf<List<Skill>>(emptyList()) }
+fun VisualMap(
+    onAddClick: () -> Unit,
+    viewModel: SkillViewModel = hiltViewModel()
+) {
+    val skills by viewModel.skills.collectAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
@@ -116,13 +123,6 @@ fun VisualMap(onAddClick: () -> Unit) {
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val width = constraints.maxWidth.toFloat()
-                val height = constraints.maxHeight.toFloat()
-
-                LaunchedEffect(width, height) {
-                    skills = getInitialSkills(width, height)
-                }
-
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     skills.forEach { skill ->
                         drawCircle(
@@ -156,7 +156,10 @@ fun VisualMap(onAddClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewMap(onNavigateBack: () -> Unit) {
+fun NewMap(
+    onNavigateBack: () -> Unit,
+    viewModel: SkillViewModel = hiltViewModel()
+) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -244,8 +247,16 @@ fun NewMap(onNavigateBack: () -> Unit) {
                     }, colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Blue
                     ), onClick = {
+                        val skill = Skill(
+                            name = skillName,
+                            progress = sliderPercentage.roundToInt(),
+                            pointX = (Math.random() * 500).toFloat(),
+                            pointY = (Math.random() * 500).toFloat()
+                        )
+                        viewModel.addSkill(skill)
                         onNavigateBack()
-                    })
+                    }, enabled = skillName.isNotBlank()
+                )
             }
         }
     }
@@ -256,7 +267,8 @@ fun getInitialSkills(width: Float, height: Float): List<Skill> {
         Skill(
             name = "Skill $index",
             pointX = Random.nextFloat() * width,
-            pointY = Random.nextFloat() * height
+            pointY = Random.nextFloat() * height,
+            progress = 0
         )
     }
 }

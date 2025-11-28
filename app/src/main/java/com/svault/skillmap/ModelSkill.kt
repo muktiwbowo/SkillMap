@@ -1,10 +1,20 @@
 package com.svault.skillmap
 
-import kotlin.random.Random
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
+@Entity(tableName = "table_skill")
 data class ModelSkill(
-    val id: Int = Random.nextInt(),
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "id")
+    val id: Int = 0,
+    @ColumnInfo(name = "name")
+    val name: String,
+    @ColumnInfo(name = "point_x")
     val pointX: Float,
+    @ColumnInfo(name = "point_y")
     val pointY: Float,
-    val name: String
+    @ColumnInfo(name = "progress")
+    val progress: Int
 )
