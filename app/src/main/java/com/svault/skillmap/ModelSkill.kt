@@ -11,6 +11,8 @@ data class ModelSkill(
     val id: Int = 0,
     @ColumnInfo(name = "name")
     val name: String,
+    @ColumnInfo(name = "notes")
+    val notes: String,
     @ColumnInfo(name = "point_x")
     val pointX: Float,
     @ColumnInfo(name = "point_y")
