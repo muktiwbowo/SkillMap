@@ -3,28 +3,43 @@ package com.svault.skillmap
 import android.annotation.SuppressLint
 import android.graphics.*
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderColors
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -39,6 +54,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.svault.skillmap.ui.theme.SkillMapTheme
+import kotlin.math.roundToInt
 import kotlin.random.Random
 import com.svault.skillmap.ModelSkill as Skill
 
@@ -55,18 +71,20 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNavigation(){
+fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController,
-        startDestination = "skill_map"){
+    NavHost(
+        navController = navController,
+        startDestination = "skill_map"
+    ) {
         composable("skill_map") {
             VisualMap {
                 navController.navigate("new_map")
             }
         }
 
-        composable("new_map"){
+        composable("new_map") {
             NewMap {
                 navController.popBackStack()
             }
@@ -77,9 +95,10 @@ fun AppNavigation(){
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @Composable
-fun VisualMap(onAddClick: () -> Unit){
-    var skills by remember { mutableStateOf<List<Skill>>( emptyList()) }
-    Scaffold(modifier = Modifier.fillMaxSize(),
+fun VisualMap(onAddClick: () -> Unit) {
+    var skills by remember { mutableStateOf<List<Skill>>(emptyList()) }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(shape = ShapeDefaults.ExtraLarge, onClick = onAddClick) {
                 Icon(Icons.Default.Add, contentDescription = "Add Skill")
@@ -137,8 +156,9 @@ fun VisualMap(onAddClick: () -> Unit){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewMap(onNavigateBack: () -> Unit){
-    Scaffold(modifier = Modifier.fillMaxSize(),
+fun NewMap(onNavigateBack: () -> Unit) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text("Add/Edit Skill") },
@@ -149,19 +169,90 @@ fun NewMap(onNavigateBack: () -> Unit){
                 }
             )
         }) { paddingValues ->
+        var skillName: String by remember { mutableStateOf("") }
+        var sliderPercentage: Float by remember { mutableStateOf(50f) }
+        var notes: String by remember { mutableStateOf("") }
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            Text("Add/Edit Skill Screen - To be implemented")
+            Text("Skill Name")
+            OutlinedTextField(
+                value = skillName,
+                onValueChange = { skillName = it },
+                placeholder = { Text("e.g., Jetpack Compose") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("Progress ${sliderPercentage.roundToInt()}%")
+            Slider(
+                value = sliderPercentage,
+                onValueChange = { sliderPercentage = it },
+                valueRange = 0f..100f,
+                steps = 0,
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    activeTrackColor = Color.Blue,
+                    inactiveTrackColor = Color.Gray,
+                ),
+                thumb = {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .background(
+                                color = Color.White,
+                                shape = CircleShape
+                            )
+                    )
+                }
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Just started", fontSize = 12.sp, color = Color.Gray)
+                Text("Mastered", fontSize = 12.sp, color = Color.Gray)
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("Notes")
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                placeholder = { Text("What are you learning?") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    content = {
+                        Text("Delete Skill")
+                    }, colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Red
+                    ), onClick = {
+                        onNavigateBack()
+                    })
+                Button(
+                    content = {
+                        Text("Save")
+                    }, colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Blue
+                    ), onClick = {
+                        onNavigateBack()
+                    })
+            }
         }
     }
 }
 
-fun getInitialSkills(width: Float, height: Float): List<Skill>{
-    return List(5){ index ->
+fun getInitialSkills(width: Float, height: Float): List<Skill> {
+    return List(5) { index ->
         Skill(
             name = "Skill $index",
             pointX = Random.nextFloat() * width,
